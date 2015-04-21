@@ -17,12 +17,22 @@ PAGE_LOAD_TIMEOUT = 120  # seconds
 
 def main(args):
     parser = argparse.ArgumentParser(description="Program for running tests on the PATRIC web interface.")
-    parser.add_argument("user", metavar="string", help="Patric login username.")
-    parser.add_argument("passwd", metavar="string", help="Patric login password")
+    parser.add_argument("user", metavar="user", help="Patric login username.")
+    parser.add_argument("passwd", metavar="passwd", help="Patric login password.")
+    parser.add_argument("--firebug", action="store_true", help="Open Firebug during test.")
     args = parser.parse_args()
 
+    fp = webdriver.FirefoxProfile()
+    if args.firebug:
+        fp.add_extension(extension='extras/firebug-2.0.9.xpi')
+        fp.set_preference("extensions.firebug.currentVersion", "2.0.9") #Avoid startup screen
+        fp.set_preference("extensions.firebug.console.enableSites", "true")
+        fp.set_preference("extensions.firebug.net.enableSites", "true")
+        fp.set_preference("extensions.firebug.script.enableSites", "true")
+        fp.set_preference("extensions.firebug.allPagesActivation", "on")
+
     # Create webdriver and retrieve url
-    driver = webdriver.Chrome()
+    driver = webdriver.Firefox(firefox_profile=fp)
     driver.get(SITE_URL + '/login')
 
     # Wait for username input box to appear
@@ -50,11 +60,13 @@ def main(args):
     driver.get(ws_url)
     WebDriverWait(driver, PAGE_LOAD_TIMEOUT).until(EC.presence_of_element_located((By.CLASS_NAME, "ActionButtonContainer")))
     time.sleep(5)
+
+    # Have to reload page, because often time the workspace is empty on first load
     driver.get(ws_url)
     WebDriverWait(driver, PAGE_LOAD_TIMEOUT).until(EC.presence_of_element_located((By.CLASS_NAME, "ActionButtonContainer")))
-    #createFolderButton = driver.find_element_by_class_name("ActionButton fa icon-folder-plus fa-2x")
-    #createFolderButton.click()
-    time.sleep(10)
+#    createFolderButton = driver.find_element_by_class_name("ActionButton fa icon-folder-plus fa-2x")
+#    createFolderButton.click()
+    time.sleep(30)
 
     driver.quit()
     return 0
