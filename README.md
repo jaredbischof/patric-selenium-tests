@@ -1,4 +1,4 @@
-# patric-selenium-tests
+# patric-tests
 
 Steps for testing:
 
