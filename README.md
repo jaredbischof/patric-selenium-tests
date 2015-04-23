@@ -7,6 +7,7 @@ Requirements:
 4. pyvirtualdisplay (tested on version 0.1.5)
 
 Installation instructions for Ubuntu 14.04:
+
     # You probably already have python and can skip the first step.
     sudo apt-get install python
     sudo pip install selenium
