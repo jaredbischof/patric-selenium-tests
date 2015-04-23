@@ -4,6 +4,7 @@ import sys
 import time
 import argparse
 
+from pyvirtualdisplay import Display
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.common.exceptions import UnexpectedAlertPresentException
@@ -31,6 +32,10 @@ def main(args):
         fp.set_preference("extensions.firebug.script.enableSites", "true")
         fp.set_preference("extensions.firebug.allPagesActivation", "on")
 
+    # Create virtual display
+    display = Display(visible=0, size=(1400, 950))
+    display.start()
+
     # Create webdriver and retrieve url
     driver = webdriver.Firefox(firefox_profile=fp)
     driver.get(SITE_URL + '/login')
@@ -56,6 +61,7 @@ def main(args):
     print "Saved screenshot to: homepage_after_login.jpg\n"
 
     driver.quit()
+    display.stop()
     return 0
 
 if __name__ == "__main__":
