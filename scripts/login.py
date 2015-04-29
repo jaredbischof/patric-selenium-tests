@@ -41,8 +41,6 @@ def main(args):
     display.start()
     print "Created virtual display"
 
-    # Create firefox binary object
-
     # Create webdriver and retrieve url
     driver = webdriver.Firefox(firefox_profile=fp, firefox_binary=FirefoxBinary(FIREFOX_PATH))
     url = SITE_URL + '/login'
