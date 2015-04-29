@@ -1,19 +1,24 @@
 #!/usr/bin/env python
 
+import os
 import sys
 import time
 import argparse
 
+from pyvirtualdisplay import Display
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.common.exceptions import UnexpectedAlertPresentException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait # available since 2.4.0
 from selenium.webdriver.support import expected_conditions as EC # available since 2.26.0
+from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
 
 VERSION = '0.5'
 SITE_URL = 'https://www.patricbrc.org'
 PAGE_LOAD_TIMEOUT = 120  # seconds
+FIREFOX_PATH = os.environ.get('FIREFOX_PATH', '/usr/bin/firefox')
+FIREBUG_XPI = os.environ.get('FIREBUG_XPI', 'extras/firebug-2.0.9.xpi')
 
 def main(args):
     parser = argparse.ArgumentParser(description="Test to login to PATRIC web interface.")
@@ -31,9 +36,18 @@ def main(args):
         fp.set_preference("extensions.firebug.script.enableSites", "true")
         fp.set_preference("extensions.firebug.allPagesActivation", "on")
 
+    # Create virtual display
+    display = Display(visible=0, size=(1400, 950))
+    display.start()
+    print "Created virtual display"
+
+    # Create firefox binary object
+
     # Create webdriver and retrieve url
-    driver = webdriver.Firefox(firefox_profile=fp)
-    driver.get(SITE_URL + '/login')
+    driver = webdriver.Firefox(firefox_profile=fp, firefox_binary=FirefoxBinary(FIREFOX_PATH))
+    url = SITE_URL + '/login'
+    driver.get(url)
+    print "Retrieved login url: " + url
 
     # Wait for username input box to appear
     WebDriverWait(driver, PAGE_LOAD_TIMEOUT).until(EC.presence_of_element_located((By.ID, "dijit_form_TextBox_0")))
@@ -53,9 +67,10 @@ def main(args):
     driver.set_window_size(1400, 950)
     driver.execute_script("window.scrollTo(0,0);")
     driver.get_screenshot_as_file("homepage_after_login.jpg")
-    print "Saved screenshot to: homepage_after_login.jpg\n"
+    print "Saved screenshot to: homepage_after_login.jpg"
 
     driver.quit()
+    display.stop()
     return 0
 
 if __name__ == "__main__":
