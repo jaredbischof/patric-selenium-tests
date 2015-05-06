@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
-import os
-import sys
-import time
 import argparse
+import os
+import string
+import sys
+import timeit
 
 from pyvirtualdisplay import Display
 from selenium import webdriver
@@ -25,6 +26,8 @@ def main(args):
     parser.add_argument("user", metavar="user", help="Patric login username.")
     parser.add_argument("passwd", metavar="passwd", help="Patric login password.")
     parser.add_argument("--firebug", action="store_true", help="Open Firebug during test.")
+    parser.add_argument("--verbose", action="store_true", help="Print informational messages.")
+    parser.add_argument("--screenshots", action="store_true", help="Take screenshots during test execution.")
     args = parser.parse_args()
 
     fp = webdriver.FirefoxProfile()
@@ -39,15 +42,29 @@ def main(args):
     # Create virtual display
     display = Display(visible=0, size=(1400, 950))
     display.start()
-    print "Created virtual display"
+    if args.verbose:
+        print "Created virtual display"
 
     # Create webdriver and retrieve url
     driver = webdriver.Firefox(firefox_profile=fp, firefox_binary=FirefoxBinary(FIREFOX_PATH))
-    url = SITE_URL + '/login'
+    url = "https://www.patricbrc.org/portal/portal/patric/Home"
+    start = timeit.default_timer()
     driver.get(url)
-    print "Retrieved login url: " + url
+    if args.verbose:
+        print "Retrieved login url: " + url
 
-    # Wait for username input box to appear
+    # Wait for dashboardnav div to a2ddppear
+    WebDriverWait(driver, PAGE_LOAD_TIMEOUT).until(EC.presence_of_element_located((By.ID, "dashboardnav")))
+    stop = timeit.default_timer()
+    patric_login_load = int((stop - start) * 1000 + 0.5)
+
+    # Execute js function to open login iframe
+    driver.execute_script("doLogin();")
+
+    # Wait for login iframe to appear
+    WebDriverWait(driver, PAGE_LOAD_TIMEOUT).until(EC.frame_to_be_available_and_switch_to_it((By.TAG_NAME, "iframe")))
+
+    # Wait for username field to appear
     WebDriverWait(driver, PAGE_LOAD_TIMEOUT).until(EC.presence_of_element_located((By.ID, "dijit_form_TextBox_0")))
 
     # Set username and password, click login button
@@ -56,16 +73,28 @@ def main(args):
     userElement.send_keys(args.user)
     pwdElement.send_keys(args.passwd)
     loginElement = driver.find_element_by_id("dijit_form_Button_1")
+    start = timeit.default_timer()
     loginElement.click()
-    time.sleep(3)
 
-    # Retrieve home page, wait for an expected page element to load, take a screenshot
-    driver.get(SITE_URL + '/portal/portal/patric/Home')
-    WebDriverWait(driver, PAGE_LOAD_TIMEOUT).until(EC.presence_of_element_located((By.ID, "cart")))
-    driver.set_window_size(1400, 950)
-    driver.execute_script("window.scrollTo(0,0);")
-    driver.get_screenshot_as_file("homepage_after_login.jpg")
-    print "Saved screenshot to: homepage_after_login.jpg"
+    # Wait for dashboardnav div to a2ddppear
+    WebDriverWait(driver, PAGE_LOAD_TIMEOUT).until(EC.presence_of_element_located((By.ID, "dashboardnav")))
+    stop = timeit.default_timer()
+    patric_login_run = int((stop - start) * 1000 + 0.5)
+    dashboardnav = driver.find_element_by_id("dashboardnav")
+    dashboardhtml = dashboardnav.get_attribute('innerHTML')
+
+    if string.find(dashboardhtml, 'Welcome'):
+        if args.screenshots:
+            driver.set_window_size(1400, 950)
+            driver.execute_script("window.scrollTo(0,0);")
+            jpg = "homepage_after_login.jpg"
+            driver.get_screenshot_as_file(jpg)
+            print "Saved screenshot to: " + jpg
+        sys.stdout.write("patric_login_load\t%d\n" % patric_login_load)
+        sys.stdout.write("patric_login_run\t%d\n" % patric_login_run)
+    else:
+        sys.stderr.write("[error]: unsuccessful login\n")
+        return 1
 
     driver.quit()
     display.stop()
